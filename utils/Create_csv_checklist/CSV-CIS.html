@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Benchmark Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX Transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- App Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-beautiful-dnd@13.1.1/dist/react-beautiful-dnd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+
+    <style>
+        /* Basic styling to match the app's theme */
+        body {
+            background-color: #111827; /* bg-gray-900 */
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // This React code has been adapted to run directly in the browser.
+        // The main changes are removing import/export and using global library objects.
+
+        const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h-1v1a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5h1v-1H2Z"/></svg>,
+            Grip: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>,
+            Add: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>,
+            AddGroup: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 6.5a.5.5 0 0 0-1 0v2h-2a.5.5 0 0 0 0 1h2v2a.5.5 0 0 0 1 0v-2h2a.5.5 0 0 0 0-1h-2v-2z"/><path d="M2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12z"/></svg>,
+            Upload: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>,
+            CreateFile: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z"/><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/></svg>,
+            Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>,
+            Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/></svg>,
+            Template: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/></svg>,
+            SoundOn: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.536 14.01A8.473 8.473 0 0 0 14.026 8a8.473 8.473 0 0 0-2.49-6.01l-.708.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89l.706.706z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.49 3.49 0 0 1 8 10.475l.707.707zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06z"/></svg>,
+            SoundOff: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06zm7.137 2.096a.5.5 0 0 1 0 .708L12.207 8l1.647 1.646a.5.5 0 0 1-.708.708L11.5 8.707l-1.646 1.647a.5.5 0 0 1-.708-.708L10.793 8 9.146 6.354a.5.5 0 1 1 .708-.708L11.5 7.293l1.646-1.647a.5.5 0 0 1 .708 0z"/></svg>,
+            Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>,
+        };
+
+        // --- DATA MAPPINGS & OPTIONS ---
+        const DOMAIN_ID_MAP = { "Initial Setup": "1.", "Services": "2.", "Network Configuration": "3.", "Host Based Firewall": "4.", "Access Control": "5.", "Logging and Auditing": "6.", "System Maintenance": "7." };
+        const INITIAL_DOMAIN_OPTIONS = Object.keys(DOMAIN_ID_MAP);
+        const INITIAL_LEVEL_OPTIONS = ["L1", "L2", "L1 and L2"];
+        const INITIAL_PROFILE_OPTIONS = ["Server, Workstation", "Server", "Workstation"];
+        const INITIAL_CHECK_TYPE_OPTIONS = [ "command_output", "config_file_value", "execute_script", "kernel_module_status", "multi_procedure", "package_status", "mount_point" ];
+        const INITIAL_ALGORITHM_OPTIONS = ['Null', 'Not Null', 'Contain', 'Exact', 'Does Not Contain'];
+        const INITIAL_SCRIPTS = ["check_package.sh", "check_sysctl.sh", "ensure_default_user_unmask_is_configured.sh"];
+
+        // --- HELPER COMPONENTS ---
+        const FormField = ({ label, children }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1.5">{label}</label>
+                {children}
+            </div>
+        );
+        const Input = (props) => {
+            const { className, ...rest } = props;
+            return <input {...rest} className={`w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2 px-3 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${className}`} />;
+        }
+        const Select = (props) => <select {...props} className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2 px-3 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />;
+        const Textarea = (props) => <textarea {...props} className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2 px-3 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />;
+        const Button = ({ children, onClick, className = '', variant = 'primary', ...props }) => {
+            const baseClasses = "px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+            const variants = {
+                primary: 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20',
+                secondary: 'bg-gray-600 text-gray-200 hover:bg-gray-500',
+                danger: 'bg-red-600 text-white hover:bg-red-500',
+            };
+            return <button onClick={onClick} className={`${baseClasses} ${variants[variant]} ${className}`} {...props}>{children}</button>;
+        };
+        const AddNewPattern = ({ onAdd, buttonText = "+ Add New" }) => {
+            const [isAdding, setIsAdding] = useState(false);
+            const [value, setValue] = useState('');
+            const handleAdd = () => { if (value.trim()) { onAdd(value.trim()); setValue(''); setIsAdding(false); } };
+            if (isAdding) { return ( <div className="flex items-center gap-2"> <Input type="text" value={value} onChange={e => setValue(e.target.value)} autoFocus /> <button onClick={handleAdd} className="bg-green-600 hover:bg-green-700 text-white font-bold p-2 rounded-md" title="Add">+</button> <button onClick={() => setIsAdding(false)} className="bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-md" title="Cancel">&times;</button> </div> ); }
+            return <button onClick={() => setIsAdding(true)} className="text-sm text-gray-400 hover:text-white">{buttonText}</button>;
+        };
+
+        const generateId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // --- SMART PARAMETER PARSING LOGIC ---
+        const parseParametersShorthand = (input) => {
+            if (typeof input !== 'string') return null;
+            const str = input.trim();
+            if (!str) return null;
+            try { const parsed = JSON.parse(str); if (typeof parsed === 'object' && parsed !== null) return str; } catch (e) { /* Not a valid JSON string, proceed with shorthand parsing. */ }
+            if (str.includes(':')) {
+                const obj = {};
+                const pairs = str.split(',').map(p => p.trim());
+                for (const pair of pairs) {
+                    const parts = pair.split(/:(.*)/s);
+                    if (parts.length >= 2) {
+                        const key = parts[0].trim();
+                        let value = parts[1].trim();
+                        if (value.startsWith('[') && value.endsWith(']')) { value = value.substring(1, value.length - 1).split(',').map(item => item.trim()).filter(Boolean); }
+                        obj[key] = value;
+                    }
+                }
+                return JSON.stringify(obj);
+            }
+            if (str.includes(',')) { return JSON.stringify(str.split(',').map(item => item.trim()).filter(Boolean)); }
+            return JSON.stringify([str]);
+        };
+
+        const formatParametersForDisplay = (jsonString) => {
+            if (jsonString === null || typeof jsonString === 'undefined') return '';
+            if (typeof jsonString !== 'string') return String(jsonString);
+            try {
+                const data = JSON.parse(jsonString);
+                if (data.success_code && Array.isArray(data.success_code)) { return data.success_code.join(', '); }
+                if (Array.isArray(data)) { return data.join(', '); }
+                if (typeof data === 'object' && data !== null) { return Object.entries(data).map(([key, value]) => { if (Array.isArray(value)) return `${key}:[${value.join(',')}]`; return `${key}:${value}`; }).join(', '); }
+            } catch (e) { return jsonString; }
+            return jsonString;
+        };
+
+        const toPythonString = (value) => {
+            if (value === null || typeof value === 'undefined') return null;
+            if (typeof value === 'boolean') return value ? 'True' : 'False';
+            if (typeof value === 'number') return String(value);
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    return toPythonString(parsed);
+                } catch (e) {
+                    const escapedValue = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    return `'${escapedValue}'`;
+                }
+            }
+            if (Array.isArray(value)) return `[${value.map(toPythonString).join(', ')}]`;
+            if (typeof value === 'object' && value !== null) {
+                const pairs = Object.entries(value).map(([k, v]) => `${toPythonString(k)}: ${toPythonString(v)}`).join(', ');
+                return `{${pairs}}`;
+            }
+            return null; 
+        };
+
+        const forceAggressiveRecovery = (str) => {
+            console.log("🚨 Forcing aggressive recovery for severely corrupted data...");
+            
+            // Try to extract the core JSON structure by finding patterns
+            // Look for the actual logic and steps content
+            let extractedLogic = 'AND'; // default
+            let extractedSteps = [];
+            
+            // Extract logic more aggressively
+            const logicMatch = str.match(/["']?logic["']?\s*[:"']\s*["']?(AND|OR)["']?/i);
+            if (logicMatch) {
+                extractedLogic = logicMatch[1];
+                console.log("🔍 Extracted logic:", extractedLogic);
+            }
+            
+            // Look for complete step patterns in the corrupted string
+            // Try to find patterns that contain title, target, and other fields together
+            const stepPatterns = [
+                /\{[^}]*?"title"[^}]*?"target"[^}]*?\}/g,  // Complete step objects
+                /\{[^}]*?title[^}]*?target[^}]*?\}/g,     // Without quotes
+            ];
+            
+            let foundSteps = [];
+            stepPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(str)) !== null) {
+                    foundSteps.push(match[0]);
+                }
+            });
+            
+            console.log("🔍 Found complete step patterns:", foundSteps.length);
+            
+            // If we found complete patterns, try to parse them
+            if (foundSteps.length > 0) {
+                foundSteps.forEach((stepStr, index) => {
+                    try {
+                        // Clean up the step string
+                        let cleanStep = stepStr
+                            .replace(/\\"/g, '"')
+                            .replace(/\\'/g, "'")
+                            .replace(/'\s*:\s*'/g, '":"')
+                            .replace(/'\s*:\s*"/g, '":"')
+                            .replace(/"\s*:\s*'/g, '":"');
+                        
+                        console.log(`Trying to parse step ${index + 1}:`, cleanStep.substring(0, 100));
+                        
+                        // Try to parse as JSON
+                        const parsed = JSON.parse(cleanStep);
+                        extractedSteps.push({
+                            title: parsed.title || `Step ${index + 1}`,
+                            type_handler: parsed.type_handler || 'command_output',
+                            target: parsed.target || '',
+                            algorithm: parsed.algorithm || 'Null',
+                            expected_value: parsed.expected_value || ''
+                        });
+                        console.log(`✅ Successfully parsed step ${index + 1}`);
+                    } catch (e) {
+                        console.log(`Failed to parse step ${index + 1}:`, e.message);
+                    }
+                });
+            }
+            
+            // If no complete steps found, try to extract individual fields
+            if (extractedSteps.length === 0) {
+                console.log("🔍 No complete steps found, trying individual field extraction...");
+                
+                // Extract titles and targets separately with more aggressive patterns
+                const titleMatches = str.match(/["']?title["']?\s*[:"']\s*["']([^"']+)["']/g) || [];
+                
+                // More aggressive target extraction to handle complex escaping
+                let targetMatches = str.match(/["']?target["']?\s*[:"']\s*["']([^"']+)["']/g) || [];
+                
+                // If no targets found with simple pattern, try more complex patterns for corrupted data
+                if (targetMatches.length === 0) {
+                    console.log("🔍 No targets with simple pattern, trying complex corruption patterns...");
+                    
+                    // Pattern 1: Handle escaped quotes and complex corruption
+                    targetMatches = str.match(/\\?['"]*target\\?['"]*\s*[:"']\s*\\?['"]*([^'"]*(?:\\.[^'"]*)*?)\\?['"]*(?:\s*[,}])/g) || [];
+                    
+                    // Pattern 2: Look specifically for systemctl commands in corrupted structure
+                    if (targetMatches.length === 0) {
+                        // Match: 'target': 'systemctl...' or "target": "systemctl..." with various escape patterns
+                        targetMatches = str.match(/\\?['"]*target\\?['"]*\s*[:"']\s*\\?['"]*([^'"]*systemctl[^'"]*?)\\?['"]*[,}]/gi) || [];
+                    }
+                    
+                    // Pattern 3: Extract systemctl commands directly from the string
+                    if (targetMatches.length === 0) {
+                        const systemctlMatches = str.match(/systemctl\s+[^'"]*?(?:\s*\|\s*grep[^'"]*?)?(?=\\?['"]*[,}\s])/g) || [];
+                        if (systemctlMatches.length > 0) {
+                            console.log("🔍 Found systemctl commands directly:", systemctlMatches);
+                            // Convert to target format for consistent processing
+                            targetMatches = systemctlMatches.map(cmd => `target": "${cmd.trim()}"`);
+                        }
+                    }
+                    
+                    // Pattern 4: Brute force search for the specific pattern in the raw data
+                    if (targetMatches.length === 0) {
+                        console.log("🔍 Attempting brute force extraction...");
+                        // Look for any pattern that has 'target' followed by systemctl
+                        const bruteForceMatches = str.match(/target[^}]*?systemctl[^}'"]*?(?=\\?['"]*[,}])/gi) || [];
+                        if (bruteForceMatches.length > 0) {
+                            console.log("🔍 Brute force found:", bruteForceMatches);
+                            targetMatches = bruteForceMatches.map(match => {
+                                // Extract just the command part
+                                const cmdMatch = match.match(/systemctl[^}'"]*$/);
+                                return cmdMatch ? `target": "${cmdMatch[0].trim()}"` : match;
+                            });
+                        }
+                    }
+                    
+                    console.log("🔍 Complex pattern matches:", targetMatches.length);
+                }
+                
+                console.log("Found titles:", titleMatches.length, "Found targets:", targetMatches.length);
+                
+                // Extract the actual values from matches
+                const titles = titleMatches.map(match => {
+                    const titleMatch = match.match(/["']?title["']?\s*[:"']\s*["']([^"']+)["']/);
+                    return titleMatch ? titleMatch[1] : 'Unknown title';
+                }).filter(title => title && title.length > 3 && title !== ':'); // Filter out fragments
+                
+                const targets = targetMatches.map(match => {
+                    console.log("🔍 Processing target match:", match);
+                    
+                    // Try multiple extraction patterns in order of preference
+                    let extractedTarget = '';
+                    
+                    // Pattern 1: Standard target pattern
+                    let targetMatch = match.match(/["']?target["']?\s*[:"']\s*["']([^"']+)["']/);
+                    if (targetMatch) {
+                        extractedTarget = targetMatch[1];
+                    }
+                    
+                    // Pattern 2: Complex escaped pattern
+                    if (!extractedTarget) {
+                        targetMatch = match.match(/\\?['"]*target\\?['"]*\s*[:"']\s*\\?['"]*([^'"]*(?:\\.[^'"]*)*?)\\?['"]*[,}]/);
+                        if (targetMatch) {
+                            extractedTarget = targetMatch[1];
+                        }
+                    }
+                    
+                    // Pattern 3: Systemctl-specific pattern
+                    if (!extractedTarget) {
+                        targetMatch = match.match(/\\?['"]*target\\?['"]*\s*[:"']\s*\\?['"]*([^'"]*systemctl[^'"]*?)\\?['"]*[,}]/i);
+                        if (targetMatch) {
+                            extractedTarget = targetMatch[1];
+                        }
+                    }
+                    
+                    // Pattern 4: Direct systemctl command (when we matched systemctl directly)
+                    if (!extractedTarget && match.includes('systemctl')) {
+                        // If this is our constructed format from direct systemctl match
+                        if (match.includes('target":')) {
+                            targetMatch = match.match(/target":\s*"([^"]+)"/);
+                            if (targetMatch) {
+                                extractedTarget = targetMatch[1];
+                            }
+                        } else {
+                            // Extract the systemctl command directly
+                            targetMatch = match.match(/(systemctl[^'"]*)/);
+                            if (targetMatch) {
+                                extractedTarget = targetMatch[1].trim();
+                            }
+                        }
+                    }
+                    
+                    // Clean up the extracted target
+                    if (extractedTarget) {
+                        extractedTarget = extractedTarget
+                            .replace(/\\"/g, '"')         // Unescape quotes
+                            .replace(/\\'/g, "'")         // Unescape single quotes
+                            .replace(/\\\\/g, '\\')       // Unescape backslashes
+                            .trim();
+                    }
+                    
+                    console.log(`🎯 Extracted target: "${extractedTarget}"`);
+                    return extractedTarget;
+                });
+                
+                console.log("Extracted titles:", titles);
+                console.log("Extracted targets:", targets);
+                
+                // Create steps from extracted data
+                const maxSteps = Math.max(titles.length, targets.length);
+                for (let i = 0; i < maxSteps; i++) {
+                    extractedSteps.push({
+                        title: titles[i] || `Recovered step ${i + 1} - please edit`,
+                        type_handler: 'command_output',
+                        target: targets[i] || '',
+                        algorithm: 'Null',
+                        expected_value: ''
+                    });
+                }
+            }
+            
+            // If still no steps, create a placeholder
+            if (extractedSteps.length === 0) {
+                extractedSteps = [{
+                    title: 'Recovered from corrupted data - please edit',
+                    type_handler: 'command_output',
+                    target: '',
+                    algorithm: 'Null',
+                    expected_value: ''
+                }];
+            }
+            
+            const reconstructed = { logic: extractedLogic, steps: extractedSteps };
+            console.log("✅ Forced aggressive recovery result:", reconstructed);
+            return JSON.stringify(reconstructed);
+        };
+
+        const parsePythonLiteral = (pyString, depth = 0) => {
+            if (typeof pyString !== 'string' || !pyString.trim()) return '';
+            const str = pyString.trim();
+            
+            // Prevent infinite recursion
+            if (depth > 2) {
+                console.log("🛑 Maximum recursion depth reached, forcing aggressive recovery");
+                // Force aggressive recovery directly
+                return forceAggressiveRecovery(str);
+            }
+            
+            try {
+                // First, try to parse as JSON in case it's already in JSON format
+                JSON.parse(str);
+                return str;
+            } catch (e) {
+                // Not JSON, so try to convert from Python literal
+            }
+            
+            try {
+                // Check if this is severely corrupted data that needs aggressive recovery
+                // Only trigger if we have multiple corruption indicators, not just escaped quotes
+                const hasMultipleCorruption = [
+                    str.includes('{\'{"logic"\''),     // Malformed nested structure
+                    str.includes('"}]}]}\''),          // Malformed closing structure  
+                    str.includes('\'{""'),             // Double quote corruption
+                    str.includes('""\''),              // More double quote corruption
+                    str.match(/\{\'\{[^}]*\'\}/),      // Nested quote corruption pattern
+                    str.includes('{\\"{\\"logic\\"'),  // Additional escaped corruption pattern
+                    str.includes('"{\\"{\\"logic\\"'), // More escaped corruption pattern
+                ].filter(Boolean).length >= 2;        // Need at least 2 indicators
+                
+                if (hasMultipleCorruption) {
+                    console.log("🚨 Detected severely corrupted data, attempting aggressive recovery...");
+                    
+                    // This is likely double/triple escaped data - try to recover the original structure
+                    let recovered = str;
+                    
+                    // Handle the specific pattern: {'{\'{"logic"\'': '\'AND\'', '\'steps\'': '\'[{"title": ...
+                    if (recovered.includes('{\'{"logic"\'') || recovered.includes('\'{""logic""\'')) {
+                        console.log("🔧 Detected nested quote corruption pattern, attempting specialized recovery...");
+                        
+                        // Try to extract the core JSON structure by finding patterns
+                        // Look for the actual logic and steps content
+                        let extractedLogic = 'AND'; // default
+                        let extractedSteps = [];
+                        
+                        // Extract logic
+                        const logicMatch = recovered.match(/["']?logic["']?\s*[:"']\s*["']?(AND|OR)["']?/i);
+                        if (logicMatch) {
+                            extractedLogic = logicMatch[1];
+                            console.log("🔍 Extracted logic:", extractedLogic);
+                        }
+                        
+                        // Try to find and extract step information more aggressively
+                        // First try the standard pattern, then try more aggressive patterns for corrupted data
+                        let titleMatches = recovered.match(/"title"[^}]*}|'title'[^}]*}|\\?"?title\\?"?[^}]*}/g);
+                        
+                        // If no matches, try to search for embedded title patterns in the corrupted string
+                        if (!titleMatches || titleMatches.length === 0) {
+                            console.log("🔍 No standard title matches found, searching for embedded patterns...");
+                            
+                            // Look for patterns like: "title": "some text"
+                            const embeddedTitleMatches = recovered.match(/\\?"?title\\?"?\s*:\s*\\?"?[^"]*?"?[^,}]*/g);
+                            if (embeddedTitleMatches) {
+                                console.log("Found embedded title patterns:", embeddedTitleMatches.length);
+                                titleMatches = embeddedTitleMatches;
+                            } else {
+                                // Last resort: split by step-like patterns and try to extract info
+                                console.log("🔍 Trying to split corrupted data by step patterns...");
+                                const stepChunks = recovered.split(/[,\}]\s*[,\{]/).filter(chunk => 
+                                    chunk.includes('title') || chunk.includes('target') || chunk.includes('algorithm')
+                                );
+                                if (stepChunks.length > 0) {
+                                    console.log("Found step chunks:", stepChunks.length);
+                                    titleMatches = stepChunks;
+                                }
+                            }
+                        }
+                        
+                        if (titleMatches && titleMatches.length > 0) {
+                            console.log("🔍 Found", titleMatches.length, "title matches");
+                            
+                            titleMatches.forEach((match, index) => {
+                                console.log(`Processing title match ${index + 1}:`, match.substring(0, 100));
+                                
+                                try {
+                                    // Try to extract individual fields from the corrupted match
+                                    let title = '';
+                                    let type_handler = 'command_output';
+                                    let target = '';
+                                    let algorithm = 'Null';
+                                    let expected_value = '';
+                                    
+                                    // More aggressive extraction patterns for corrupted data
+                                    // Extract title - handle multiple escape patterns
+                                    let titleExtract = match.match(/\\?"?title\\?"?\s*[:"']\s*\\?"?([^"'\\}]*?)\\?"?["']/);
+                                    if (!titleExtract) {
+                                        // Try simpler pattern
+                                        titleExtract = match.match(/title[^"]*"([^"]*)/);
+                                    }
+                                    if (titleExtract) title = titleExtract[1];
+                                    
+                                    // Extract type_handler - handle multiple escape patterns
+                                    let typeExtract = match.match(/\\?"?type_handler\\?"?\s*[:"']\s*\\?"?([^"'\\}]*?)\\?"?["']/);
+                                    if (!typeExtract) {
+                                        typeExtract = match.match(/type_handler[^"]*"([^"]*)/);
+                                    }
+                                    if (typeExtract) type_handler = typeExtract[1];
+                                    
+                                    // Extract target - handle multiple escape patterns
+                                    let targetExtract = match.match(/\\?"?target\\?"?\s*[:"']\s*\\?"?([^"'\\}]*?)\\?"?["']/);
+                                    if (!targetExtract) {
+                                        targetExtract = match.match(/target[^"]*"([^"]*)/);
+                                    }
+                                    if (targetExtract) target = targetExtract[1];
+                                    
+                                    // Extract algorithm - handle multiple escape patterns
+                                    let algoExtract = match.match(/\\?"?algorithm\\?"?\s*[:"']\s*\\?"?([^"'\\}]*?)\\?"?["']/);
+                                    if (!algoExtract) {
+                                        algoExtract = match.match(/algorithm[^"]*"([^"]*)/);
+                                    }
+                                    if (algoExtract) algorithm = algoExtract[1];
+                                    
+                                    // Extract expected_value - handle multiple escape patterns
+                                    let expectedExtract = match.match(/\\?"?expected_value\\?"?\s*[:"']\s*\\?"?([^"'\\}]*?)\\?"?["']/);
+                                    if (!expectedExtract) {
+                                        expectedExtract = match.match(/expected_value[^"]*"([^"]*)/);
+                                    }
+                                    if (expectedExtract) expected_value = expectedExtract[1];
+                                    
+                                    // Clean up extracted values
+                                    title = title.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\').replace(/\\n/g, '\n');
+                                    target = target.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\').replace(/\\n/g, '\n');
+                                    expected_value = expected_value.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\').replace(/\\n/g, '\n');
+                                    
+                                    // Clean up algorithm - handle double quotes
+                                    algorithm = algorithm.replace(/^"+|"+$/g, '').replace(/\\"/g, '"');
+                                    if (algorithm === '""Null""' || algorithm === '"Null"' || algorithm === 'Null"') {
+                                        algorithm = 'Null';
+                                    }
+                                    
+                                    if (title || target) { // Only add if we have meaningful content
+                                        extractedSteps.push({
+                                            title: title || `Recovered step ${index + 1} - please edit`,
+                                            type_handler: type_handler || 'command_output',
+                                            target: target,
+                                            algorithm: algorithm,
+                                            expected_value: expected_value
+                                        });
+                                        console.log(`✅ Successfully extracted step ${index + 1}:`, {title, type_handler, target, algorithm});
+                                    }
+                                } catch (e) {
+                                    console.log("Failed to extract from match:", e.message);
+                                    // Add a placeholder step
+                                    extractedSteps.push({
+                                        title: `Recovered from corrupted fragment ${index + 1} - please edit`,
+                                        type_handler: 'command_output',
+                                        target: '',
+                                        algorithm: 'Null',
+                                        expected_value: ''
+                                    });
+                                }
+                            });
+                        }
+                        
+                        // If we found steps, construct a proper structure
+                        if (extractedSteps.length > 0) {
+                            const reconstructed = { 
+                                logic: extractedLogic, 
+                                steps: extractedSteps 
+                            };
+                            console.log("✅ Reconstructed from corrupted pattern:", reconstructed);
+                            return JSON.stringify(reconstructed);
+                        }
+                    }
+                    
+                    // Fallback: try the previous recovery method
+                    // Remove malformed outer structure and find the actual JSON content
+                    const logicMatch = recovered.match(/"logic"[^}]+}/);
+                    const titleMatches = recovered.match(/"title"[^}]+}/g);
+                    
+                    if (logicMatch || titleMatches) {
+                        console.log("🔍 Found JSON fragments, attempting reconstruction...");
+                        
+                        // Try to reconstruct a valid structure from fragments
+                        let logic = 'AND';
+                        let steps = [];
+                        
+                        // Extract steps from title matches
+                        if (titleMatches) {
+                            steps = titleMatches.map(match => {
+                                try {
+                                    // Clean up the match and try to parse it
+                                    let cleanMatch = match
+                                        .replace(/\\"/g, '"')
+                                        .replace(/\\'/g, "'");
+                                    
+                                    // If it doesn't end with }, add it
+                                    if (!cleanMatch.endsWith('}')) {
+                                        cleanMatch += '}';
+                                    }
+                                    
+                                    // If it doesn't start with {, add it
+                                    if (!cleanMatch.startsWith('{')) {
+                                        cleanMatch = '{' + cleanMatch;
+                                    }
+                                    
+                                    const parsed = JSON.parse(cleanMatch);
+                                    return {
+                                        title: parsed.title || '',
+                                        type_handler: parsed.type_handler || 'command_output',
+                                        target: parsed.target || '',
+                                        algorithm: parsed.algorithm || 'Null',
+                                        expected_value: parsed.expected_value || ''
+                                    };
+                                } catch (e) {
+                                    console.log("Failed to parse fragment:", match, e);
+                                    return {
+                                        title: 'Recovered fragment - please edit',
+                                        type_handler: 'command_output',
+                                        target: '',
+                                        algorithm: 'Null',
+                                        expected_value: ''
+                                    };
+                                }
+                            });
+                        }
+                        
+                        // If no steps were recovered, create a placeholder
+                        if (steps.length === 0) {
+                            steps = [{
+                                title: 'Recovered from corrupted data - please edit',
+                                type_handler: 'command_output',
+                                target: '',
+                                algorithm: 'Null',
+                                expected_value: ''
+                            }];
+                        }
+                        
+                        const reconstructed = { logic, steps };
+                        console.log("✅ Reconstructed structure:", reconstructed);
+                        return JSON.stringify(reconstructed);
+                    }
+                }
+                
+                // Use a more sophisticated approach - replace Python keywords first
+                let result = str
+                    .replace(/\bNone\b/g, 'null')
+                    .replace(/\bTrue\b/g, 'true')
+                    .replace(/\bFalse\b/g, 'false');
+                
+                // Use a more robust state machine approach with better escape handling
+                let output = '';
+                let state = 'normal'; // 'normal', 'single_quote', 'double_quote'
+                let i = 0;
+                
+                while (i < result.length) {
+                    const char = result[i];
+                    const nextChar = i + 1 < result.length ? result[i + 1] : '';
+                    const prevChar = i > 0 ? result[i - 1] : '';
+                    
+                    // Handle escape sequences more carefully
+                    if (char === '\\') {
+                        if (state === 'single_quote') {
+                            // Inside single quotes, handle escapes differently
+                            if (nextChar === "'") {
+                                // Escaped single quote becomes escaped double quote
+                                output += '\\"';
+                                i += 2;
+                                continue;
+                            } else if (nextChar === '\\') {
+                                // Double backslash
+                                output += '\\\\';
+                                i += 2;
+                                continue;
+                            } else {
+                                // Other escapes - preserve them but clean up
+                                output += '\\';
+                                i++;
+                                continue;
+                            }
+                        } else {
+                            // In normal or double quote context, preserve escapes more carefully
+                            if (nextChar === '"' || nextChar === "'" || nextChar === '\\' || nextChar === 'n' || nextChar === 't' || nextChar === 'r' || nextChar === 'b') {
+                                output += char + nextChar;
+                                i += 2;
+                                continue;
+                            } else {
+                                output += char;
+                                i++;
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    switch (state) {
+                        case 'normal':
+                            if (char === '"') {
+                                output += char;
+                                state = 'double_quote';
+                            } else if (char === "'") {
+                                output += '"';
+                                state = 'single_quote';
+                            } else {
+                                output += char;
+                            }
+                            break;
+                            
+                        case 'single_quote':
+                            if (char === "'") {
+                                output += '"';
+                                state = 'normal';
+                            } else if (char === '"') {
+                                // Escape existing double quotes inside single-quoted strings
+                                output += '\\"';
+                            } else {
+                                output += char;
+                            }
+                            break;
+                            
+                        case 'double_quote':
+                            if (char === '"') {
+                                output += char;
+                                state = 'normal';
+                            } else {
+                                output += char;
+                            }
+                            break;
+                    }
+                    i++;
+                }
+                
+                console.log("🔄 Python to JSON conversion:", str.substring(0, 100) + (str.length > 100 ? '...' : ''));
+                console.log("🔄 Result:", output.substring(0, 100) + (output.length > 100 ? '...' : ''));
+                
+                // Validate the result by parsing it
+                try {
+                    const parsed = JSON.parse(output);
+                    
+                    // Check if the parsed result is actually corrupted (has malformed keys)
+                    const hasCorruptedKeys = Object.keys(parsed).some(key => 
+                        key.includes('{"') || key.includes('"}') || key.includes('\\"') || 
+                        key.startsWith('{') || key.endsWith('}')
+                    );
+                    
+                    if (hasCorruptedKeys) {
+                        console.log("🚨 Detected corrupted keys in parsed result, triggering forced aggressive recovery");
+                        // Force aggressive recovery directly instead of recursion
+                        return forceAggressiveRecovery(str);
+                    }
+                    
+                    return JSON.stringify(parsed);
+                } catch (parseError) {
+                    console.log("⚠️ State machine result failed JSON validation or has corrupted structure:", parseError.message);
+                    console.log("🔧 Attempting additional cleanup...");
+                    
+                    // Try some additional cleanup for common issues
+                    let cleanedOutput = output
+                        .replace(/\\b/g, '\\\\b')           // Fix word boundaries
+                        .replace(/\\h/g, '\\\\h')           // Fix horizontal whitespace
+                        .replace(/\\'/g, "'")               // Clean up escaped single quotes that shouldn't be escaped in JSON
+                        .replace(/([^\\])\\([^"\\nrtbf\/])/g, '$1\\\\$2'); // Escape unescaped backslashes
+                    
+                    try {
+                        const cleanedParsed = JSON.parse(cleanedOutput);
+                        
+                        // Check cleaned result for corruption too
+                        const hasCorruptedKeysAfterClean = Object.keys(cleanedParsed).some(key => 
+                            key.includes('{"') || key.includes('"}') || key.includes('\\"') || 
+                            key.startsWith('{') || key.endsWith('}')
+                        );
+                        
+                        if (hasCorruptedKeysAfterClean) {
+                            console.log("🚨 Cleaned version also has corrupted keys, triggering forced aggressive recovery");
+                            // Force aggressive recovery directly instead of recursion
+                            return forceAggressiveRecovery(str);
+                        }
+                        
+                        console.log("✅ Cleaned version parsed successfully");
+                        return JSON.stringify(cleanedParsed);
+                    } catch (cleanedError) {
+                        console.log("❌ Even cleaned version failed:", cleanedError.message);
+                        console.log("Original output:", output.substring(0, 200));
+                        console.log("Cleaned output:", cleanedOutput.substring(0, 200));
+                        
+                        // Force aggressive recovery by re-throwing with corruption pattern
+                        if (str.includes('{\'{"logic"\'') || str.includes('{\\"{\\"logic\\"')) {
+                            console.log("🔄 Forcing direct aggressive recovery for known corruption pattern");
+                            // Use direct aggressive recovery instead of recursion
+                            return forceAggressiveRecovery(str);
+                        }
+                        
+                        throw parseError; // Re-throw original error to fall back to shorthand
+                    }
+                }
+            } catch (e) {
+                console.error("❌ Failed to parse Python literal, falling back to shorthand:", pyString.substring(0, 100) + '...', e);
+                return parseParametersShorthand(pyString);
+            }
+        };
+
+        // --- MAIN APPLICATION COMPONENT ---
+        function App() {
+            // --- STATE MANAGEMENT ---
+            const [rows, setRows] = useState(() => { try { return JSON.parse(localStorage.getItem('csvGeneratorRows') || '[]'); } catch (e) { return []; } });
+            const [notification, setNotification] = useState('');
+            const [editingId, setEditingId] = useState(null);
+            const [isDndReady, setIsDndReady] = useState(false);
+            const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+            const [checkTypeOptions, setCheckTypeOptions] = useState(() => { try { return JSON.parse(localStorage.getItem('csvGeneratorCheckTypes') || JSON.stringify(INITIAL_CHECK_TYPE_OPTIONS)); } catch (e) { return INITIAL_CHECK_TYPE_OPTIONS; } });
+            const [scriptOptions, setScriptOptions] = useState(() => { try { return JSON.parse(localStorage.getItem('csvGeneratorScripts') || JSON.stringify(INITIAL_SCRIPTS)); } catch (e) { return INITIAL_SCRIPTS; } });
+            const multiProcedureStepOptions = useMemo(() => checkTypeOptions.filter(opt => opt !== 'multi_procedure'), [checkTypeOptions]);
+            const initialFormState = { ID: '', Level: INITIAL_LEVEL_OPTIONS[0], Profile: INITIAL_PROFILE_OPTIONS[0], Domain: INITIAL_DOMAIN_OPTIONS[0], Title: '', Check_Type: checkTypeOptions[0], Target: '', Parameters: '', Algorithm: INITIAL_ALGORITHM_OPTIONS[0], Expected_Value: '' };
+            const createEmptyStep = () => ({ id: generateId(), title: '', type_handler: 'command_output', target: '', parameters: '', algorithm: INITIAL_ALGORITHM_OPTIONS[0], expected_value: '', pass_stop_check: null, isStopCheckVisible: false, isExitCodeVisible: false });
+            const createEmptyGroup = () => ({ id: generateId(), logic: 'AND', steps: [] });
+            const [formState, setFormState] = useState(initialFormState);
+            const [isExitCodeInputVisible, setIsExitCodeInputVisible] = useState(false);
+            const [multiProcedureTree, setMultiProcedureTree] = useState(createEmptyGroup);
+            const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
+            const [modalCaller, setModalCaller] = useState(null);
+            const [newScriptName, setNewScriptName] = useState('');
+            const [newScriptContent, setNewScriptContent] = useState('');
+            const [confirmingClear, setConfirmingClear] = useState(false);
+            const [validationErrors, setValidationErrors] = useState({});
+            const [isMuted, setIsMuted] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [audioFiles, setAudioFiles] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('csvGeneratorAudioFiles');
+                    const initial = { success: {name: null, data: null}, error: {name: null, data: null}, click: {name: null, data: null}, delete: {name: null, data: null} };
+                    return saved ? JSON.parse(saved) : initial;
+                } catch (e) {
+                    return { success: {name: null, data: null}, error: {name: null, data: null}, click: {name: null, data: null}, delete: {name: null, data: null} };
+                }
+            });
+            const synthRef = useRef(null);
+
+            // --- EFFECTS ---
+            useEffect(() => {
+                const initAudio = () => {
+                    if (window.Tone) {
+                        synthRef.current = new window.Tone.Synth().toDestination();
+                    } else {
+                        console.error("Tone.js not loaded");
+                    }
+                };
+
+                const checkDependencies = () => {
+                    if (window.Papa) { /* PapaParse is ready */ } else { setNotification('Error: CSV library not loaded.'); }
+                    if (window.ReactBeautifulDnd) { setIsDndReady(true); } else { setNotification('Error: DND library not loaded.'); }
+                };
+                
+                initAudio();
+                checkDependencies();
+            }, []);
+
+            const playSound = useCallback((type) => {
+                if (isMuted || !window.Tone) return;
+
+                const userAudioData = audioFiles[type]?.data;
+
+                const playDefault = () => {
+                    const synth = synthRef.current;
+                    if (!synth) return;
+                    try {
+                        window.Tone.start();
+                        const now = window.Tone.now();
+                        switch (type) {
+                            case 'success': synthRef.current.triggerAttackRelease("C5", "16n", now); synthRef.current.triggerAttackRelease("E5", "16n", now + 0.1); synthRef.current.triggerAttackRelease("G5", "16n", now + 0.2); break;
+                            case 'error': synthRef.current.triggerAttackRelease("A2", "8n", now); break;
+                            case 'click': synthRef.current.triggerAttackRelease("G5", "32n", now); break;
+                            case 'delete': synthRef.current.triggerAttackRelease("E4", "16n", now); synthRef.current.triggerAttackRelease("C4", "16n", now + 0.08); break;
+                            default: break;
+                        }
+                    } catch (e) { console.error("Could not play default sound:", e); }
+                };
+
+                if (userAudioData) {
+                    try {
+                        window.Tone.start();
+                        const player = new window.Tone.Player({
+                            url: userAudioData,
+                            autostart: true,
+                            onerror: (err) => {
+                                console.error(`Error loading custom audio for '${type}':`, err);
+                                setNotification(`Couldn't load custom sound for '${type}'. Playing default.`);
+                                playDefault();
+                            }
+                        }).toDestination();
+                    } catch (e) {
+                        console.error(`Error creating player for '${type}':`, e);
+                        playDefault();
+                    }
+                } else {
+                    playDefault();
+                }
+            }, [isMuted, audioFiles]);
+
+            useEffect(() => { if (notification) { const timer = setTimeout(() => setNotification(''), 3500); return () => clearTimeout(timer); } }, [notification]);
+            useEffect(() => { if (confirmingClear) { const timer = setTimeout(() => setConfirmingClear(false), 3000); return () => clearTimeout(timer); } }, [confirmingClear]);
+            useEffect(() => { localStorage.setItem('csvGeneratorRows', JSON.stringify(rows)); }, [rows]);
+            useEffect(() => { localStorage.setItem('csvGeneratorScripts', JSON.stringify(scriptOptions)); }, [scriptOptions]);
+            useEffect(() => { localStorage.setItem('csvGeneratorCheckTypes', JSON.stringify(checkTypeOptions)); }, [checkTypeOptions]);
+            useEffect(() => { localStorage.setItem('csvGeneratorAudioFiles', JSON.stringify(audioFiles)); }, [audioFiles]);
+            useEffect(() => { if (formState.Check_Type !== 'multi_procedure') setMultiProcedureTree(createEmptyGroup()); }, [formState.Check_Type]);
+            
+            // --- Tree Traversal & Manipulation ---
+            const findNodeByPath = (path, tree) => { let node = tree; for (const index of path) { if (!node || !node.steps || !node.steps[index]) return null; node = node.steps[index]; } return node; };
+            const updateNodeInTree = useCallback((path, updates) => { setMultiProcedureTree(currentTree => { const newTree = JSON.parse(JSON.stringify(currentTree)); const nodeToUpdate = findNodeByPath(path, newTree); if (nodeToUpdate) { Object.assign(nodeToUpdate, updates); } else if (path.length === 0) { Object.assign(newTree, updates); } return newTree; }); }, []);
+            const addNodeToTree = useCallback((parentPath, nodeToAdd) => { playSound('click'); setMultiProcedureTree(currentTree => { const newTree = JSON.parse(JSON.stringify(currentTree)); const targetGroup = findNodeByPath(parentPath, newTree); if (targetGroup && targetGroup.steps) targetGroup.steps.push(nodeToAdd); return newTree; }); }, [playSound]);
+            const removeNodeFromTree = useCallback((path) => { playSound('delete'); if (path.length === 0) return; setMultiProcedureTree(currentTree => { const newTree = JSON.parse(JSON.stringify(currentTree)); const parentPath = path.slice(0, -1); const indexToRemove = path[path.length - 1]; const parentNode = findNodeByPath(parentPath, newTree); if (parentNode && parentNode.steps && parentNode.steps[indexToRemove]) { parentNode.steps.splice(indexToRemove, 1); } return newTree; }); }, [playSound]);
+            const duplicateNodeInTree = useCallback((path) => { playSound('click'); if (path.length === 0) return; const recursivelyAssignNewIds = (node) => { node.id = generateId(); if (node.steps) { node.steps.forEach(recursivelyAssignNewIds); } return node; }; setMultiProcedureTree(currentTree => { const newTree = JSON.parse(JSON.stringify(currentTree)); const parentPath = path.slice(0, -1); const indexToDup = path[path.length - 1]; const parentNode = findNodeByPath(parentPath, newTree); if (!parentNode || !parentNode.steps || !parentNode.steps[indexToDup]) return newTree; const nodeToDuplicate = parentNode.steps[indexToDup]; const duplicatedNode = recursivelyAssignNewIds(JSON.parse(JSON.stringify(nodeToDuplicate))); parentNode.steps.splice(indexToDup + 1, 0, duplicatedNode); return newTree; }); }, [playSound]);
+            const handleOnDragEnd = useCallback((result) => { const { source, destination } = result; if (!destination || (source.droppableId === destination.droppableId && source.index === destination.index)) return; setMultiProcedureTree(currentTree => { const newTree = JSON.parse(JSON.stringify(currentTree)); const findParentGroup = (node, droppableId) => { if (node.id === droppableId) return node; if (!node.steps) return null; for (const step of node.steps) { if (step.steps) { const found = findParentGroup(step, droppableId); if(found) return found; } } return null; }; const sourceParent = findParentGroup(newTree, source.droppableId); const destParent = findParentGroup(newTree, destination.droppableId); if (!sourceParent || !destParent) return newTree; const [draggedItem] = sourceParent.steps.splice(source.index, 1); destParent.steps.splice(destination.index, 0, draggedItem); return newTree; }); }, []);
+
+            // --- FORM & DATA HANDLERS ---
+            const handleFormChange = (field, value) => { 
+                setFormState(prevState => { const newState = { ...prevState, [field]: value }; if (field === 'Domain') { const newIdPrefix = DOMAIN_ID_MAP[value] || ''; if (!newState.ID.startsWith(newIdPrefix)) newState.ID = newIdPrefix; } else if (field === 'ID') { const idPrefix = value.split('.')[0] + '.'; const matchingDomain = Object.keys(DOMAIN_ID_MAP).find(d => DOMAIN_ID_MAP[d] === idPrefix); if (matchingDomain && newState.Domain !== matchingDomain) newState.Domain = matchingDomain; } return newState; }); 
+                if (validationErrors[field]) {
+                    setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors[field];
+                        return newErrors;
+                    });
+                }
+            };
+            const resetForm = () => { setFormState(initialFormState); setMultiProcedureTree(createEmptyGroup()); setEditingId(null); setIsExitCodeInputVisible(false); setValidationErrors({}); 
+                setNotification('Form reset successfully.'); playSound('delete'); };
+            
+            const validateForm = () => {
+                const errors = {};
+                const needsValue = ['Contain', 'Exact', 'Does Not Contain'];
+
+                if (!formState.ID) errors.ID = true;
+                if (!formState.Title) errors.Title = true;
+
+                const checkNode = (node, idPrefix) => {
+                    if (needsValue.includes(node.Algorithm || node.algorithm) && !(node.Expected_Value || node.expected_value)) {
+                        errors[`${idPrefix}_expected_value`] = true;
+                    }
+                    if (node.type_handler === 'execute_script' && !node.target) {
+                        errors[`${idPrefix}_target`] = true;
+                    }
+                    if (node.type_handler === 'command_output' && !node.target) {
+                        errors[`${idPrefix}_target`] = true;
+                    }
+                };
+
+                if (formState.Check_Type !== 'multi_procedure') {
+                    if (!formState.Target) errors.Target = true;
+                    checkNode(formState, 'main');
+                } else {
+                    const traverseAndValidate = (node) => {
+                        if (node.steps) {
+                            node.steps.forEach(traverseAndValidate);
+                        } else {
+                            checkNode(node, `step_${node.id}`);
+                        }
+                    };
+                    traverseAndValidate(multiProcedureTree);
+                }
+                return errors;
+            };
+
+            const getRowDataFromState = () => {
+                const rowData = { ...formState };
+
+                if (rowData.Check_Type === 'multi_procedure') {
+                    const cleanNodeForSaving = (node) => {
+                        if (node.steps) {
+                            return { logic: node.logic, steps: node.steps.map(cleanNodeForSaving) };
+                        }
+                        
+                        const { id, isStopCheckVisible, isExitCodeVisible, ...rest } = node;
+                        const stepData = { ...rest };
+
+                        if (stepData.pass_stop_check === null || typeof stepData.pass_stop_check === 'undefined') {
+                            delete stepData.pass_stop_check;
+                        }
+
+                        if (stepData.algorithm === 'Null' || stepData.algorithm === 'Not Null') {
+                            delete stepData.expected_value;
+                        }
+
+                        if (stepData.type_handler === 'command_output') {
+                            if (!stepData.parameters || !stepData.parameters.trim()) {
+                                delete stepData.parameters; 
+                            } else {
+                                const codes = stepData.parameters.split(',').map(s => s.trim()).filter(Boolean);
+                                if (codes.length > 0) {
+                                stepData.parameters = JSON.stringify({ success_code: codes });
+                                } else {
+                                delete stepData.parameters;
+                                }
+                            }
+                        } else {
+                            stepData.parameters = parseParametersShorthand(stepData.parameters);
+                            if (stepData.parameters === null) {
+                                delete stepData.parameters;
+                            }
+                        }
+                        return stepData;
+                    };
+                    try {
+                        rowData.Parameters = JSON.stringify(cleanNodeForSaving(multiProcedureTree));
+                        rowData.Target = 'N/A';
+                        rowData.Algorithm = null;
+                        rowData.Expected_Value = null;
+                    } catch (e) {
+                        setNotification(`Error serializing multi-procedure: ${e.message}`);
+                        return null;
+                    }
+                } else {
+                    let finalParameters;
+                    if (rowData.Check_Type === 'command_output') {
+                        if (!rowData.Parameters || !rowData.Parameters.trim()) {
+                            finalParameters = null;
+                        } else {
+                            const codes = rowData.Parameters.split(',').map(s => s.trim()).filter(Boolean);
+                            finalParameters = codes.length > 0 ? JSON.stringify({ success_code: codes }) : null;
+                        }
+                    } else {
+                        finalParameters = parseParametersShorthand(rowData.Parameters);
+                    }
+                    
+                    rowData.Parameters = finalParameters;
+
+                    if (rowData.Algorithm === 'Null' || rowData.Algorithm === 'Not Null') {
+                        rowData.Expected_Value = null;
+                    }
+                }
+                return rowData;
+            };
+
+            const loadRowDataIntoForm = (rowData) => {
+                let paramsForDisplay = '';
+                if (rowData.Check_Type === 'command_output') { 
+                    paramsForDisplay = formatParametersForDisplay(rowData.Parameters); 
+                    setIsExitCodeInputVisible(!!paramsForDisplay); 
+                } 
+                else if (rowData.Check_Type === 'multi_procedure' && rowData.Parameters) {
+                    console.log("=== DEBUGGING ROW ===", rowData.ID);
+                    console.log("Raw multi-procedure parameters:", rowData.Parameters);
+                    console.log("Parameters type:", typeof rowData.Parameters);
+                    console.log("Parameters length:", rowData.Parameters.length);
+                    
+                    try {
+                        let parsedParams;
+                        
+                        // Try to parse as direct JSON first (new format)
+                        try {
+                            parsedParams = JSON.parse(rowData.Parameters);
+                            console.log("✅ SUCCESS: Parsed as direct JSON:", parsedParams);
+                        } catch (e1) {
+                            console.log("❌ Direct JSON parse failed:", e1.message);
+                            // If that fails, try the Python literal format (old format)
+                            try {
+                                console.log("🔄 Attempting Python literal conversion...");
+                                const pythonConverted = parsePythonLiteral(rowData.Parameters);
+                                console.log("Python literal converted result:", pythonConverted);
+                                console.log("Python converted type:", typeof pythonConverted);
+                                parsedParams = JSON.parse(pythonConverted);
+                                console.log("✅ SUCCESS: Parsed after Python conversion:", parsedParams);
+                            } catch (e2) {
+                                console.log("❌ Python literal parse failed:", e2.message);
+                                // If both fail, try to clean up the corrupted format
+                                try {
+                                    let cleanedParams = rowData.Parameters;
+                                    console.log("🧹 Attempting to clean corrupted format...");
+                                    console.log("Original:", cleanedParams);
+                                    
+                                    // More aggressive cleanup for very corrupted data
+                                    cleanedParams = cleanedParams
+                                        .replace(/^['"]|['"]$/g, '')             // Remove outer quotes
+                                        .replace(/\\"/g, '"')                    // Fix escaped quotes
+                                        .replace(/\\'/g, "'")                    // Fix escaped single quotes
+                                        .replace(/"{/g, '{')                     // Fix quote before {
+                                        .replace(/}"/g, '}')                     // Fix quote after }
+                                        .replace(/'\[/g, '[')                    // Fix quote before [
+                                        .replace(/\]'/g, ']')                    // Fix quote after ]
+                                        .replace(/'{/g, '{')                     // Fix quote before {
+                                        .replace(/}'/g, '}')                     // Fix quote after }
+                                        .replace(/True/g, 'true')                // Convert Python True
+                                        .replace(/False/g, 'false')              // Convert Python False
+                                        .replace(/None/g, 'null')                // Convert Python None
+                                        .replace(/'/g, '"')                      // Convert single to double quotes
+                                        .replace(/\s+/g, ' ')                    // Normalize whitespace
+                                        .trim();
+                                    
+                                    console.log("After cleaning:", cleanedParams);
+                                    parsedParams = JSON.parse(cleanedParams);
+                                    console.log("✅ SUCCESS: Parsed cleaned data:", parsedParams);
+                                } catch (e3) {
+                                    console.error("❌ All parsing attempts failed!");
+                                    console.error("Error 1 (Direct JSON):", e1.message);
+                                    console.error("Error 2 (Python literal):", e2.message);
+                                    console.error("Error 3 (Cleaned):", e3.message);
+                                    console.log("🆘 Creating minimal structure as fallback");
+                                    
+                                    // Create a minimal structure as last resort
+                                    parsedParams = {
+                                        logic: 'AND',
+                                        steps: [{
+                                            title: `Recovered from corrupted data (${rowData.ID}) - please edit`,
+                                            type_handler: 'command_output',
+                                            target: '',
+                                            algorithm: 'Null',
+                                            expected_value: ''
+                                        }]
+                                    };
+                                }
+                            }
+                        }
+                        
+                        console.log("📋 Final parsed parameters:", parsedParams);
+                        
+                        if (!parsedParams || typeof parsedParams !== 'object') {
+                            throw new Error("Parsed parameters is not a valid object");
+                        }
+                        
+                        const buildStateTree = (node) => {
+                            const stateNode = { id: generateId() };
+                            if (node.steps) { 
+                                stateNode.logic = node.logic || 'AND'; 
+                                stateNode.steps = node.steps.map(buildStateTree); 
+                            } 
+                            else { 
+                                // Handle parameters more carefully
+                                let formattedParams = '';
+                                if (node.parameters) {
+                                    if (typeof node.parameters === 'string') {
+                                        formattedParams = node.parameters;
+                                    } else if (Array.isArray(node.parameters)) {
+                                        formattedParams = node.parameters.join(', ');
+                                    } else {
+                                        formattedParams = formatParametersForDisplay(JSON.stringify(node.parameters));
+                                    }
+                                }
+                                
+                                Object.assign(stateNode, { 
+                                    title: node.title || '',
+                                    type_handler: node.type_handler || 'command_output',
+                                    target: node.target || '',
+                                    parameters: formattedParams, 
+                                    algorithm: node.algorithm || 'Null',
+                                    expected_value: node.expected_value || '',
+                                    pass_stop_check: node.pass_stop_check || null,
+                                    isStopCheckVisible: !!node.pass_stop_check,
+                                    isExitCodeVisible: node.type_handler === 'command_output' && !!formattedParams 
+                                }); 
+                            }
+                            return stateNode;
+                        };
+                        
+                        const builtTree = buildStateTree(parsedParams);
+                        console.log("🌳 Built state tree:", builtTree);
+                        console.log("🌳 Tree has", builtTree.steps ? builtTree.steps.length : 0, "steps");
+                        console.log("🌳 Tree structure:", JSON.stringify(builtTree, null, 2));
+                        
+                        // Validate the tree structure before setting it
+                        if (!builtTree || !builtTree.steps || builtTree.steps.length === 0) {
+                            console.warn("⚠️ Built tree is empty or invalid, creating fallback structure");
+                            console.log("Parsed params that led to empty tree:", parsedParams);
+                            setMultiProcedureTree({
+                                id: generateId(),
+                                logic: 'AND',
+                                steps: [{
+                                    id: generateId(),
+                                    title: `Debug: Empty tree for ${rowData.ID} - check console`,
+                                    type_handler: 'command_output',
+                                    target: '',
+                                    parameters: '',
+                                    algorithm: 'Null',
+                                    expected_value: '',
+                                    pass_stop_check: null,
+                                    isStopCheckVisible: false,
+                                    isExitCodeVisible: false
+                                }]
+                            });
+                        } else {
+                            setMultiProcedureTree(builtTree);
+                        }
+                        console.log("✅ Successfully set multi-procedure tree for", rowData.ID);
+                    } catch (e) { 
+                        console.error("💥 FINAL ERROR parsing multi-procedure parameters for", rowData.ID, ":", e);
+                        console.error("Stack trace:", e.stack);
+                        setNotification(`Error parsing multi-procedure parameters for ${rowData.ID}. Creating empty structure.`); 
+                        setMultiProcedureTree(createEmptyGroup()); 
+                    }
+                } else { 
+                    paramsForDisplay = formatParametersForDisplay(rowData.Parameters); 
+                }
+                
+                const loadedState = {
+                    ...initialFormState,
+                    ...rowData,
+                    Parameters: paramsForDisplay || '',
+                    Algorithm: rowData.Algorithm || '',
+                    Expected_Value: rowData.Expected_Value || ''
+                };
+
+                setFormState(loadedState);
+                window.scrollTo(0, 0);
+            };
+            const handleAddRow = () => { 
+                const errors = validateForm();
+                if (Object.keys(errors).length > 0) {
+                    setValidationErrors(errors);
+                    setNotification('Please fill in all required fields.');
+                    playSound('error');
+                    return;
+                }
+                
+                if (rows.some(row => row.ID === formState.ID)) { 
+                    setNotification('Error: ID already exists.');
+                    setValidationErrors(prev => ({...prev, ID: true}));
+                    playSound('error');
+                    return; 
+                } 
+                setValidationErrors({});
+                const newRow = getRowDataFromState(); 
+                if (newRow) { 
+                    setRows(prev => [...prev, newRow]); 
+                    resetForm(); 
+                    playSound('success');
+                } 
+            };
+            const handleUpdateRow = () => { 
+                const errors = validateForm();
+                if (Object.keys(errors).length > 0) {
+                    setValidationErrors(errors);
+                    setNotification('Please fill in all required fields.');
+                    playSound('error');
+                    return;
+                }
+
+                if (editingId !== formState.ID && rows.some(r => r.ID === formState.ID)) { 
+                    setNotification('Error: New ID already exists.');
+                    setValidationErrors(prev => ({...prev, ID: true}));
+                    playSound('error');
+                    return; 
+                } 
+                setValidationErrors({});
+                const updatedRowData = getRowDataFromState(); 
+                if(updatedRowData) { 
+                    setRows(rows.map(row => (row.ID === editingId ? updatedRowData : row))); 
+                    resetForm(); 
+                    playSound('success');
+                } 
+            };
+            const handleSaveNewScript = () => { if (!newScriptName) { setNotification('Error: Script filename is required.'); return; } const finalName = newScriptName.endsWith('.sh') ? newScriptName : `${newScriptName}.sh`; if (!scriptOptions.includes(finalName)) { setScriptOptions(prev => [...prev, finalName]); } if (modalCaller && modalCaller.type === 'step') { updateNodeInTree(modalCaller.path, { target: finalName }); } else { handleFormChange('Target', finalName); } const blob = new Blob([newScriptContent], { type: 'text/plain;charset=utf-8' }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = finalName; document.body.appendChild(link); link.click(); document.body.removeChild(link); setIsScriptModalOpen(false); setNewScriptName(''); setNewScriptContent(''); setModalCaller(null); };
+            const openScriptModal = (caller) => { setModalCaller(caller); setIsScriptModalOpen(true); };
+            const handleStartEdit = (row) => { setEditingId(row.ID); loadRowDataIntoForm(row); };
+            const handleCancelEdit = () => { resetForm(); };
+            const handleRemoveRow = (id) => { playSound('delete'); if(editingId === id) resetForm(); setRows(rows.filter(r => r.ID !== id)); };
+            const handleCopyRow = (rowToCopy) => { playSound('click'); const newRow = { ...rowToCopy }; let newId = `${rowToCopy.ID}_copy`; let counter = 1; const allIds = new Set(rows.map(r => r.ID)); while (allIds.has(newId)) { newId = `${rowToCopy.ID}_copy${counter++}`; } newRow.ID = newId; const originalIndex = rows.findIndex(r => r.ID === rowToCopy.ID); const newRows = [...rows]; newRows.splice(originalIndex + 1, 0, newRow); setRows(newRows); setNotification(`Row duplicated with new ID: ${newId}`); };
+            const handleCopyAsTemplate = (row) => { loadRowDataIntoForm(row); setFormState(prevState => ({ ...prevState, ID: '', Title: '' })); setEditingId(null); setNotification('Row loaded as template. Enter new ID and Title.'); };
+            const sortedRows = useMemo(() => { let sortableRows = [...rows]; if (sortConfig.key) { sortableRows.sort((a, b) => { const valA = a[sortConfig.key] || ''; const valB = b[sortConfig.key] || ''; if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1; return 0; }); } return sortableRows; }, [rows, sortConfig]);
+            const handleExportCsv = () => { 
+                if (!sortedRows.length) {
+                    setNotification('No data to export.');
+                    playSound('error');
+                    return;
+                }
+                if (typeof window.Papa === 'undefined') {
+                    setNotification('Error: CSV library not loaded.');
+                    playSound('error');
+                    return;
+                }
+                
+                try {
+                    const dataForExport = sortedRows.map(row => { 
+                        // For multi-procedure, clean up and convert to proper Python format
+                        if (row.Check_Type === 'multi_procedure') {
+                            let cleanParameters = row.Parameters;
+                            
+                            // If parameters are corrupted, try to parse and reconstruct them
+                            if (typeof cleanParameters === 'string') {
+                                try {
+                                    // First try to parse as JSON if it's already valid
+                                    let parsed;
+                                    try {
+                                        parsed = JSON.parse(cleanParameters);
+                                    } catch (e) {
+                                        // If direct parsing fails, use our Python literal parser
+                                        const converted = parsePythonLiteral(cleanParameters);
+                                        parsed = JSON.parse(converted);
+                                    }
+                                    
+                                    // Convert the clean JSON structure back to Python format for CSV export
+                                    cleanParameters = toPythonString(parsed);
+                                    
+                                    console.log(`✅ Cleaned parameters for ${row.ID}:`, cleanParameters);
+                                } catch (parseError) {
+                                    console.warn(`⚠️ Failed to clean parameters for ${row.ID}:`, parseError.message);
+                                    // Keep original if we can't clean it
+                                    cleanParameters = row.Parameters;
+                                }
+                            }
+                            
+                            return { ...row, Parameters: cleanParameters };
+                        }
+                        // For other types, convert to Python format
+                        return { ...row, Parameters: toPythonString(row.Parameters) }; 
+                    }); 
+                    const csv = window.Papa.unparse(dataForExport); 
+                    
+                    if (!csv || csv.trim() === '') {
+                        setNotification('Error: Failed to generate CSV data.');
+                        playSound('error');
+                        return;
+                    }
+                    
+                    // Count how many multi-procedure rows were cleaned
+                    const multiProcRows = dataForExport.filter(row => row.Check_Type === 'multi_procedure').length;
+                    
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); 
+                    const link = document.createElement("a"); 
+                    link.href = URL.createObjectURL(blob); 
+                    link.download = "cis_benchmark.csv"; 
+                    document.body.appendChild(link); 
+                    link.click(); 
+                    document.body.removeChild(link); 
+                    
+                    setNotification(`✅ CSV exported successfully! (${sortedRows.length} rows, ${multiProcRows} multi-procedure rows cleaned)`);
+                    playSound('success');
+                } catch (error) {
+                    setNotification(`Error exporting CSV: ${error.message}`);
+                    playSound('error');
+                    console.error('CSV Export Error:', error);
+                }
+            };
+            const handleFileUpload = (event) => { 
+                const file = event.target.files[0]; 
+                if (!file || typeof window.Papa === 'undefined') return; 
+                window.Papa.parse(file, { 
+                    header: true, 
+                    skipEmptyLines: true, 
+                    complete: (results) => { 
+                        if (results.errors.length) { 
+                            setNotification('Error parsing CSV.');
+                            playSound('error'); 
+                            return; 
+                        } 
+                        try { 
+                            const importedRows = results.data.map(row => {
+                                const baseRow = { ...initialFormState, ...row };
+                                
+                                // Handle multi-procedure parameters differently
+                                if (row.Check_Type === 'multi_procedure') {
+                                    // For multi-procedure, Parameters should already be JSON
+                                    baseRow.Parameters = row.Parameters;
+                                } else {
+                                    // For other types, parse Python literal
+                                    baseRow.Parameters = parsePythonLiteral(row.Parameters);
+                                }
+                                
+                                return baseRow;
+                            }); 
+                            setRows(importedRows); 
+                            setNotification('CSV imported successfully!'); 
+                            playSound('success'); 
+                        } catch (e) { 
+                            setNotification('Error processing CSV data. Please check format.'); 
+                            playSound('error'); 
+                            console.error(e); 
+                        } 
+                    }, 
+                    error: () => {
+                        setNotification(`Error parsing CSV file.`); 
+                        playSound('error')
+                    } 
+                }); 
+                event.target.value = null; 
+            };
+            const handleRowDragEnd = (result) => { if (!result.destination) return; const items = Array.from(rows); const [reorderedItem] = items.splice(result.source.index, 1); items.splice(result.destination.index, 0, reorderedItem); setRows(items); setSortConfig({ key: null, direction: 'ascending' }); };
+            const requestSort = (key) => { let direction = 'ascending'; if (sortConfig.key === key && sortConfig.direction === 'ascending') { direction = 'descending'; } setSortConfig({ key, direction }); };
+            
+            // --- Sub-Components ---
+             const AudioUploadControl = ({ label, soundKey, fileData, setAudioFiles }) => {
+                const fileInputRef = useRef(null);
+                const handleFileChange = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        setAudioFiles(prev => ({ ...prev, [soundKey]: { name: file.name, data: e.target.result } }));
+                    };
+                    reader.readAsDataURL(file);
+                };
+                const handleClear = () => {
+                    setAudioFiles(prev => ({ ...prev, [soundKey]: { name: null, data: null } }));
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                };
+                return (
+                    <FormField label={label}>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-900/50 p-2 rounded-md text-sm truncate text-gray-300 italic">
+                                {fileData?.name || "Default Sound"}
+                            </div>
+                            <input type="file" accept="audio/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" id={`audio-upload-${soundKey}`} />
+                            <Button onClick={() => fileInputRef.current.click()} variant="secondary">Upload</Button>
+                            {fileData?.data && <Button onClick={handleClear} variant="danger">Clear</Button>}
+                        </div>
+                    </FormField>
+                );
+            };
+
+            const SearchableScriptControls = ({ value, onChange, onAdd, onUpload, onCreate, uploadId, error }) => {
+                const [searchTerm, setSearchTerm] = useState('');
+                const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+                const wrapperRef = useRef(null);
+            
+                const fuzzySearch = useCallback((options, term) => {
+                    const searchWords = term.toLowerCase().replace(/_/g, ' ').split(' ').filter(Boolean);
+                    if (searchWords.length === 0) {
+                        return options;
+                    }
+                    const scoredOptions = options
+                        .map(opt => {
+                            const normalizedOpt = opt.toLowerCase().replace(/_/g, ' ');
+                            let score = 0;
+                            searchWords.forEach(word => {
+                                if (normalizedOpt.includes(word)) {
+                                    score++;
+                                }
+                            });
+                            return { opt, score };
+                        })
+                        .filter(item => item.score > 0)
+                        .sort((a, b) => b.score - a.score)
+                        .map(item => item.opt);
+                    return scoredOptions;
+                }, []);
+            
+                const filteredScriptOptions = useMemo(() => {
+                    return fuzzySearch(scriptOptions, searchTerm);
+                }, [searchTerm, scriptOptions, fuzzySearch]);
+            
+                useEffect(() => {
+                    function handleClickOutside(event) {
+                        if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                            setIsDropdownOpen(false);
+                        }
+                    }
+                    document.addEventListener("mousedown", handleClickOutside);
+                    return () => {
+                        document.removeEventListener("mousedown", handleClickOutside);
+                    };
+                }, [wrapperRef]);
+            
+                const handleSelectOption = (option) => {
+                    onChange(option);
+                    setSearchTerm(option);
+                    setIsDropdownOpen(false);
+                };
+            
+                useEffect(() => {
+                    setSearchTerm(value || '');
+                }, [value]);
+            
+                return (
+                    <div className="relative" ref={wrapperRef}>
+                        <Input
+                            type="text"
+                            placeholder="Search or select a script..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            onFocus={() => setIsDropdownOpen(true)}
+                            className={error ? '!border-red-500 !ring-red-500' : ''}
+                        />
+                        {isDropdownOpen && (
+                            <div className="absolute z-20 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {filteredScriptOptions.length > 0 ? (
+                                    filteredScriptOptions.map(opt => (
+                                        <div
+                                            key={opt}
+                                            className={`px-4 py-2 text-gray-200 cursor-pointer hover:bg-blue-600 ${value === opt ? 'bg-blue-700' : ''}`}
+                                            onMouseDown={(e) => { 
+                                                e.preventDefault();
+                                                handleSelectOption(opt);
+                                            }}
+                                        >
+                                            {opt}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-2 text-gray-400">No scripts found.</div>
+                                )}
+                            </div>
+                        )}
+                        <div className="flex items-center space-x-2 pt-2">
+                            <AddNewPattern onAdd={onAdd} buttonText="+ Add by Name" />
+                            <label htmlFor={uploadId} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-md cursor-pointer" title="Bulk add names from files">
+                                <Icons.Upload />
+                            </label>
+                            <input type="file" id={uploadId} multiple accept=".sh" className="hidden" onChange={onUpload} />
+                            <button onClick={onCreate} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-md" title="Create new script file">
+                                <Icons.CreateFile />
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            const MainScriptControls = () => {
+                const handleAddScript = (newScriptName) => {
+                    if (newScriptName && !scriptOptions.includes(newScriptName)) {
+                        setScriptOptions(prev => [...prev, newScriptName]);
+                    }
+                    handleFormChange('Target', newScriptName);
+                };
+                const handleMainScriptUpload = (event) => {
+                    const files = event.target.files;
+                    if (!files || files.length === 0) return;
+                    const newScriptNames = Array.from(files).map(file => file.name).filter(name => !scriptOptions.includes(name));
+                    if (newScriptNames.length > 0) {
+                        setScriptOptions(prev => [...prev, ...newScriptNames]);
+                        handleFormChange('Target', newScriptNames[0]);
+                    }
+                    event.target.value = null;
+                };
+            
+                return (
+                    <SearchableScriptControls
+                        value={formState.Target}
+                        onChange={(value) => handleFormChange('Target', value)}
+                        onAdd={handleAddScript}
+                        onUpload={handleMainScriptUpload}
+                        onCreate={() => openScriptModal({ type: 'main' })}
+                        uploadId="main-script-upload"
+                        error={validationErrors.Target}
+                    />
+                );
+            };
+            
+            const RenderNode = useCallback(({ node, path, depth = 0 }) => {
+                if (!node || !window.ReactBeautifulDnd) return null;
+                const { Droppable, Draggable } = window.ReactBeautifulDnd;
+                const isGroup = 'steps' in node;
+                const isRoot = path.length === 0;
+                const handleStepChange = (field, value) => {
+                    updateNodeInTree(path, { [field]: value });
+                    if (validationErrors[`expected_value_${node.id}`] || validationErrors[`step_${node.id}_target`]) {
+                        setValidationErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors[`expected_value_${node.id}`];
+                            delete newErrors[`step_${node.id}_target`];
+                            return newErrors;
+                        });
+                    }
+                };
+                const handleTypeChange = (value) => { updateNodeInTree(path, { type_handler: value, target: '', parameters: '', isExitCodeVisible: false }); };
+                const ActionButton = ({ onClick, title, children, className = '' }) => (<button onClick={onClick} title={title} className={`p-1.5 rounded-md transition-colors ${className}`}>{children}</button>);
+                const depthColors = ['border-blue-500', 'border-teal-500', 'border-purple-500', 'border-yellow-500'];
+                const borderClass = depthColors[depth % depthColors.length];
+                
+                const StepScriptControls = () => {
+                    const handleAddScript = (newScriptName) => {
+                        if (newScriptName && !scriptOptions.includes(newScriptName)) {
+                            setScriptOptions(prev => [...prev, newScriptName]);
+                        }
+                        handleStepChange('target', newScriptName);
+                    };
+                    const handleStepScriptUpload = (event) => {
+                        const files = event.target.files;
+                        if (!files || files.length === 0) return;
+                        const newScriptNames = Array.from(files).map(file => file.name).filter(name => !scriptOptions.includes(name));
+                        if (newScriptNames.length > 0) {
+                            setScriptOptions(prev => [...prev, ...newScriptNames]);
+                            handleStepChange('target', newScriptNames[0]);
+                        }
+                        event.target.value = null;
+                    };
+                    return (
+                        <SearchableScriptControls
+                            value={node.target}
+                            onChange={(value) => handleStepChange('target', value)}
+                            onAdd={handleAddScript}
+                            onUpload={handleStepScriptUpload}
+                            onCreate={() => openScriptModal({ type: 'step', path })}
+                            uploadId={`step-script-upload-${node.id}`}
+                            error={validationErrors[`step_${node.id}_target`]}
+                        />
+                    );
+                };
+
+                const nodeContent = (dragHandleProps) => (
+                    isGroup ? (
+                        <div className={`group bg-white/5 rounded-lg p-4 pl-6 relative border-l-4 ${borderClass}`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2 bg-black/20 p-1 rounded-md">
+                                    <button onClick={() => updateNodeInTree(path, { logic: 'AND' })} className={`px-3 py-1 text-sm rounded ${node.logic === 'AND' ? 'bg-blue-600 text-white' : 'bg-transparent text-gray-400 hover:bg-gray-600'}`}>AND</button>
+                                    <button onClick={() => updateNodeInTree(path, { logic: 'OR' })} className={`px-3 py-1 text-sm rounded ${node.logic === 'OR' ? 'bg-blue-600 text-white' : 'bg-transparent text-gray-400 hover:bg-gray-600'}`}>OR</button>
+                                    </div>
+                                </div>
+                                {!isRoot && (
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ActionButton onClick={() => duplicateNodeInTree(path)} title="Duplicate Group" className="text-blue-400 hover:bg-blue-500/20"><Icons.Copy /></ActionButton>
+                                        <ActionButton onClick={() => removeNodeFromTree(path)} title="Delete Group" className="text-red-400 hover:bg-red-500/20"><Icons.Delete /></ActionButton>
+                                        <div {...dragHandleProps} className="text-gray-500 hover:text-white cursor-grab p-1.5"><Icons.Grip /></div>
+                                    </div>
+                                )}
+                            </div>
+                            <Droppable droppableId={node.id} type="NODE">
+                                {(provided, snapshot) => (
+                                    <div ref={provided.innerRef} {...provided.droppableProps} className={`space-y-4 rounded-md min-h-[80px] transition-colors p-2 ${snapshot.isDraggingOver ? 'bg-blue-900/20' : 'bg-transparent'}`}>
+                                        {node.steps.map((childNode, index) => <RenderNode key={childNode.id} node={childNode} path={[...path, index]} depth={depth + 1} />)}
+                                        {provided.placeholder}
+                                    </div>
+                                )}
+                            </Droppable>
+                            <div className="flex items-center gap-2 pt-4 mt-2 border-t border-white/10">
+                                <button onClick={() => addNodeToTree(path, createEmptyStep())} className="text-sm text-blue-400 bg-transparent border border-blue-400/50 hover:bg-blue-500/10 hover:border-blue-400 font-semibold py-2 px-3 rounded-md flex items-center gap-2 transition-all"><Icons.Add/> Add Action Step</button>
+                                <button onClick={() => addNodeToTree(path, createEmptyGroup())} className="text-sm text-indigo-400 bg-transparent border border-indigo-400/50 hover:bg-indigo-500/10 hover:border-indigo-400 font-semibold py-2 px-3 rounded-md flex items-center gap-2 transition-all"><Icons.AddGroup/> Add Logic Block</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="group bg-gray-800/70 hover:bg-gray-700/80 rounded-lg relative transition-colors">
+                            <div className="p-4">
+                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <ActionButton onClick={() => duplicateNodeInTree(path)} title="Duplicate Step" className="text-blue-400 hover:bg-blue-500/20"><Icons.Copy /></ActionButton>
+                                    <ActionButton onClick={() => removeNodeFromTree(path)} title="Delete Step" className="text-red-400 hover:bg-red-500/20"><Icons.Delete /></ActionButton>
+                                    <div {...dragHandleProps} className="text-gray-500 hover:text-white cursor-grab p-1.5"><Icons.Grip /></div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 mb-4">
+                                    <FormField label="Step Title"><Input type="text" value={node.title} onChange={e => handleStepChange('title', e.target.value)} /></FormField>
+                                    <FormField label="Check Type"><Select value={node.type_handler} onChange={e => handleTypeChange(e.target.value)}>{multiProcedureStepOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}</Select></FormField>
+                                </div>
+                                <div className="space-y-4">
+                                    {node.type_handler === 'command_output' && <FormField label="Command Line"><Input type="text" value={node.target} onChange={e => handleStepChange('target', e.target.value)} className={validationErrors[`step_${node.id}_target`] ? '!border-red-500 !ring-red-500' : ''} /></FormField>}
+                                    {node.type_handler === 'execute_script' && <FormField label="Target Script"><StepScriptControls/></FormField>}
+                                    {node.type_handler === 'command_output' ? (
+                                        !node.isExitCodeVisible ? (
+                                            <button onClick={() => updateNodeInTree(path, { isExitCodeVisible: true })} className="text-sm text-gray-400 hover:text-white">+ Add Exit Code Allow List</button>
+                                        ) : (
+                                            <FormField label="Exit Code Allow List">
+                                                <div className="flex items-center gap-2">
+                                                    <Input type="text" value={node.parameters} onChange={e => handleStepChange('parameters', e.target.value)} placeholder="e.g. 0, 1, 255" />
+                                                    <button onClick={() => updateNodeInTree(path, { isExitCodeVisible: false, parameters: '' })} className="text-gray-400 hover:text-white p-1 text-xl font-bold" title="Remove">&times;</button>
+                                                </div>
+                                            </FormField>
+                                        )
+                                    ) : (
+                                        <FormField label="Parameters"><Textarea value={node.parameters} onChange={e => handleStepChange('parameters', e.target.value)} rows={3} placeholder="key:value, list:[item1,item2] or item1, item2" /></FormField>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 mt-4">
+                                    <FormField label="Algorithm"><Select value={node.algorithm || ''} onChange={e => handleStepChange('algorithm', e.target.value)}>{INITIAL_ALGORITHM_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</Select></FormField>
+                                {node.algorithm !== 'Null' && node.algorithm !== 'Not Null' && (
+                                        <FormField label="Expected Value"><Input type="text" value={node.expected_value} onChange={e => handleStepChange('expected_value', e.target.value)} className={validationErrors[`step_${node.id}_expected_value`] ? '!border-red-500 !ring-red-500' : ''} /></FormField>
+                                    )}
+                                </div>
+                                <div className="mt-4">
+                                    {!node.isStopCheckVisible ? (
+                                        <button onClick={() => updateNodeInTree(path, { isStopCheckVisible: true, pass_stop_check: 'True' })} className="w-full text-left text-sm text-red-400 hover:text-red-300 font-bold py-2 rounded-md flex items-center gap-1">
+                                            <Icons.Add/> Add Stop Condition
+                                        </button>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <label className="flex items-center text-white cursor-pointer select-none">
+                                                <input type="checkbox" checked={node.pass_stop_check === 'True'} onChange={(e) => updateNodeInTree(path, { pass_stop_check: e.target.checked ? 'True' : null })} className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />
+                                                <span className="ml-2 text-sm text-red-400">Stop check if this step passes</span>
+                                            </label>
+                                            <button onClick={() => updateNodeInTree(path, { isStopCheckVisible: false, pass_stop_check: null })} className="text-gray-400 hover:text-white p-1 text-xl font-bold" title="Remove Stop Condition">
+                                                &times;
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                );
+                if (isRoot) { return nodeContent(null); }
+                return (<Draggable draggableId={node.id} index={path[path.length - 1]}>{(provided, snapshot) => (<div ref={provided.innerRef} {...provided.draggableProps} className={`transition-opacity ${snapshot.isDragging ? 'opacity-80' : ''}`}>{nodeContent(provided.dragHandleProps)}</div>)}</Draggable>);
+            }, [multiProcedureStepOptions, scriptOptions, updateNodeInTree, addNodeToTree, removeNodeFromTree, duplicateNodeInTree, validationErrors]);
+
+            // --- MAIN RENDER ---
+            return (
+                <div className="bg-gray-900 text-gray-200 font-sans antialiased p-8">
+                    <div className="container mx-auto">
+                        <header className="flex justify-between items-center mb-8">
+                            <h1 className="text-3xl font-bold text-white">CSV Benchmark Generator</h1>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="p-2 bg-gray-800 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="Settings">
+                                    <Icons.Settings />
+                                </button>
+                                <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-gray-800 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title={isMuted ? "Unmute" : "Mute"}>
+                                    {isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}
+                                </button>
+                            </div>
+                        </header>
+
+                        {isSettingsOpen && (
+                            <div className="bg-gray-800/50 p-6 rounded-xl mb-8 border border-white/10">
+                                <h3 className="text-lg font-semibold mb-4 text-white">Custom Sound Effects</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <AudioUploadControl label="Success Sound" soundKey="success" fileData={audioFiles.success} setAudioFiles={setAudioFiles} />
+                                    <AudioUploadControl label="Error Sound" soundKey="error" fileData={audioFiles.error} setAudioFiles={setAudioFiles} />
+                                    <AudioUploadControl label="Click Sound" soundKey="click" fileData={audioFiles.click} setAudioFiles={setAudioFiles} />
+                                    <AudioUploadControl label="Delete Sound" soundKey="delete" fileData={audioFiles.delete} setAudioFiles={setAudioFiles} />
+                                </div>
+                            </div>
+                        )}
+
+                        <main className="bg-gray-800 p-8 rounded-xl shadow-2xl border border-white/10 mb-12">
+                            <header className="mb-6">
+                                <h2 className="text-2xl font-bold text-white">Row Editor</h2>
+                                <p className="text-gray-400">{editingId ? `Editing Row ID: ${editingId}` : "Create a new row for the benchmark"}</p>
+                            </header>
+
+                            <div className="space-y-8">
+                                <div className="p-6 bg-black/20 rounded-xl space-y-4">
+                                    <h3 className="font-semibold text-lg text-white mb-2">Core Information</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-4">
+                                        <div className="lg:col-span-2"><FormField label="ID"><Input type="text" value={formState.ID} onChange={e => handleFormChange('ID', e.target.value)} className={validationErrors.ID ? '!border-red-500 !ring-red-500' : ''} /></FormField></div>
+                                        <div className="lg:col-span-3"><FormField label="Title"><Input type="text" value={formState.Title} onChange={e => handleFormChange('Title', e.target.value)} className={validationErrors.Title ? '!border-red-500 !ring-red-500' : ''} /></FormField></div>
+                                        <FormField label="Level"><Select value={formState.Level} onChange={e => handleFormChange('Level', e.target.value)}>{INITIAL_LEVEL_OPTIONS.map(opt=><option key={opt} value={opt}>{opt}</option>)}</Select></FormField>
+                                        <FormField label="Profile"><Select value={formState.Profile} onChange={e => handleFormChange('Profile', e.target.value)}>{INITIAL_PROFILE_OPTIONS.map(opt=><option key={opt} value={opt}>{opt}</option>)}</Select></FormField>
+                                        <div className="lg:col-span-3"><FormField label="Domain"><Select value={formState.Domain} onChange={e => handleFormChange('Domain', e.target.value)}>{INITIAL_DOMAIN_OPTIONS.map(opt=><option key={opt} value={opt}>{opt}</option>)}</Select></FormField></div>
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-black/20 rounded-xl space-y-4">
+                                    <h3 className="font-semibold text-lg text-white mb-2">Check Logic</h3>
+                                    <FormField label="Check Type">
+                                        <div className="flex items-center gap-4">
+                                            <Select value={formState.Check_Type} onChange={e => handleFormChange('Check_Type', e.target.value)}>{checkTypeOptions.map(opt=><option key={opt} value={opt}>{opt}</option>)}</Select>
+                                            <AddNewPattern onAdd={(newType) => setCheckTypeOptions(prev => [...prev, newType])} buttonText="+ Add Type" />
+                                        </div>
+                                    </FormField>
+                                    {formState.Check_Type !== 'multi_procedure' && (
+                                        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                                            <FormField label="Target">{formState.Check_Type === 'execute_script' ? <MainScriptControls /> : <Input type="text" value={formState.Target} onChange={e => handleFormChange('Target', e.target.value)} className={validationErrors.Target ? '!border-red-500 !ring-red-500' : ''} />}</FormField>
+                                            {formState.Check_Type === 'command_output' ? (
+                                                <div>
+                                                    {!isExitCodeInputVisible ? (
+                                                        <button onClick={() => setIsExitCodeInputVisible(true)} className="text-sm text-gray-400 hover:text-white mt-1">+ Add Exit Code Allow List</button>
+                                                    ) : (
+                                                        <FormField label="Exit Code Allow List">
+                                                            <div className="flex items-center gap-2">
+                                                                <Input type="text" value={formState.Parameters} onChange={e => handleFormChange('Parameters', e.target.value)} placeholder="e.g. 0, 1, 127" />
+                                                                <button onClick={() => { setIsExitCodeInputVisible(false); handleFormChange('Parameters', ''); }} className="text-gray-400 hover:text-white p-1 text-xl font-bold" title="Remove">&times;</button>
+                                                            </div>
+                                                        </FormField>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <FormField label="Parameters"><Textarea value={formState.Parameters} onChange={e => handleFormChange('Parameters', e.target.value)} rows={4} placeholder="key:value, list:[item1,item2] or item1, item2" /></FormField>
+                                            )}
+                                            <FormField label="Algorithm"><Select value={formState.Algorithm || ''} onChange={e => handleFormChange('Algorithm', e.target.value)}>{INITIAL_ALGORITHM_OPTIONS.map(opt=><option key={opt} value={opt}>{opt}</option>)}</Select></FormField>
+                                            {formState.Algorithm !== 'Null' && formState.Algorithm !== 'Not Null' && (
+                                                <FormField label="Expected Value"><Input type="text" value={formState.Expected_Value} onChange={e => { handleFormChange('Expected_Value', e.target.value); if (validationErrors.main_expected_value) { setValidationErrors(prev => { const newErrors = { ...prev }; delete newErrors.main_expected_value; return newErrors; }); } }} className={validationErrors.main_expected_value ? '!border-red-500 !ring-red-500' : ''} /></FormField>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {formState.Check_Type === 'multi_procedure' && (
+                                <div className="mt-8 p-6 bg-black/20 rounded-xl">
+                                    <h2 className="font-semibold text-lg text-white mb-4">Multi-Procedure Logic Builder</h2>
+                                    {isDndReady && window.ReactBeautifulDnd ? (
+                                        <window.ReactBeautifulDnd.DragDropContext onDragEnd={handleOnDragEnd}>
+                                            <RenderNode node={multiProcedureTree} path={[]} />
+                                        </window.ReactBeautifulDnd.DragDropContext>
+                                    ) : <p>Loading Drag and Drop...</p>}
+                                </div>
+                            )}
+
+                            <div className="pt-6 mt-8 border-t border-white/10 flex items-center gap-4">
+                                {editingId !== null ? (
+                                    <>
+                                        <Button onClick={handleUpdateRow} className="flex-1" variant="primary">Update Row</Button>
+                                        <Button onClick={handleCancelEdit} variant="secondary">Cancel</Button>
+                                    </>
+                                ) : (
+                                    <Button onClick={handleAddRow} className="flex-1" variant="primary">Add Row to Table</Button>
+                                )}
+                                <Button onClick={resetForm} variant="secondary">Clear Form</Button>
+                            </div>
+                        </main>
+
+                        <section className="bg-gray-800 p-8 rounded-xl shadow-2xl border border-white/10">
+                            <header className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-white">Generated Rows</h1>
+                                    <p className="text-gray-400">Total: {rows.length} rows</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {rows.length > 0 && (
+                                        !confirmingClear ? (
+                                            <Button onClick={() => setConfirmingClear(true)} variant="danger">Clear List</Button>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <Button onClick={() => { setRows([]); setConfirmingClear(false); playSound('delete');}} variant="danger">Confirm Clear?</Button>
+                                                <Button onClick={() => setConfirmingClear(false)} variant="secondary">Cancel</Button>
+                                            </div>
+                                        )
+                                    )}
+                                    <label htmlFor="csv-upload" className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg cursor-pointer flex items-center gap-2"><Icons.Upload/> Upload CSV</label>
+                                    <input type="file" id="csv-upload" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                                    <Button onClick={handleExportCsv} variant="primary" disabled={!rows.length}>Export CSV</Button>
+                                </div>
+                            </header>
+                            <div className="flex-grow bg-black/20 rounded-xl overflow-hidden">
+                                <div className="overflow-x-auto h-full max-h-[60vh]">
+                                    {rows.length > 0 ? (
+                                        isDndReady && window.ReactBeautifulDnd ? (
+                                        <window.ReactBeautifulDnd.DragDropContext onDragEnd={handleRowDragEnd}>
+                                            <table className="w-full text-sm text-left text-gray-300">
+                                                <thead className="text-xs text-gray-400 uppercase bg-gray-800 sticky top-0 z-10">
+                                                    <tr>
+                                                        <th scope="col" className="p-4 w-12"></th>
+                                                        {Object.keys(initialFormState).map(key => <th key={key} scope="col" className="px-6 py-3 cursor-pointer" onClick={() => requestSort(key)}>{key.replace(/_/g, ' ')}</th>)}
+                                                        <th scope="col" className="px-6 py-3 text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <window.ReactBeautifulDnd.Droppable droppableId="table-rows">
+                                                    {(provided) => (
+                                                        <tbody ref={provided.innerRef} {...provided.droppableProps}>
+                                                            {sortedRows.map((row, index) => (
+                                                                <window.ReactBeautifulDnd.Draggable key={row.ID} draggableId={row.ID} index={index}>
+                                                                    {(provided, snapshot) => (
+                                                                        <tr ref={provided.innerRef} {...provided.draggableProps} className={`border-b border-white/10 hover:bg-white/5 ${snapshot.isDragging ? 'bg-blue-600/20' : ''}`}>
+                                                                            <td className="p-4 align-middle text-gray-500 hover:text-white cursor-grab" {...provided.dragHandleProps}><Icons.Grip /></td>
+                                                                            {Object.keys(initialFormState).map(key => <td key={key} className="px-6 py-4 align-top"><pre className="font-mono text-xs whitespace-pre-wrap break-all">{formatParametersForDisplay(row[key])}</pre></td>)}
+                                                                            <td className="px-6 py-4 align-top text-center whitespace-nowrap">
+                                                                                <button onClick={() => handleStartEdit(row)} title="Edit Row" className="p-2 text-yellow-400 hover:text-yellow-300 hover:bg-white/10 rounded-md"><Icons.Edit/></button>
+                                                                                <button onClick={() => handleCopyRow(row)} title="Duplicate Row" className="p-2 text-blue-400 hover:text-blue-300 hover:bg-white/10 rounded-md ml-2"><Icons.Copy/></button>
+                                                                                <button onClick={() => handleCopyAsTemplate(row)} title="Copy as Template" className="p-2 text-teal-400 hover:text-teal-300 hover:bg-white/10 rounded-md ml-2"><Icons.Template/></button>
+                                                                                <button onClick={() => handleRemoveRow(row.ID)} title="Delete Row" className="p-2 text-red-500 hover:text-red-400 hover:bg-white/10 rounded-md ml-2"><Icons.Delete/></button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    )}
+                                                                </window.ReactBeautifulDnd.Draggable>
+                                                            ))}
+                                                            {provided.placeholder}
+                                                        </tbody>
+                                                    )}
+                                                </window.ReactBeautifulDnd.Droppable>
+                                            </table>
+                                        </window.ReactBeautifulDnd.DragDropContext>
+                                        ) : <div className="flex items-center justify-center h-full text-gray-500">Loading Table...</div>
+                                    ) : (<div className="flex items-center justify-center h-48 text-gray-500">No rows yet. Add one from the editor above.</div>)}
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    {notification && (<div className="fixed bottom-5 right-5 bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg z-50 animate-pulse">{notification}</div>)}
+                    {isScriptModalOpen && (<div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"><div className="bg-gray-800 rounded-lg p-6 md:p-8 w-full max-w-2xl shadow-xl border border-white/10"><h2 className="text-2xl font-bold text-white mb-4">{modalCaller?.type === 'step' ? `Create Script for Step: "${findNodeByPath(modalCaller.path, multiProcedureTree)?.title || 'Untitled Step'}"` : 'Create New Script for Main Target'}</h2><FormField label="Script Filename (.sh)"><Input type="text" value={newScriptName} onChange={(e) => setNewScriptName(e.target.value)} /></FormField><FormField label="Script Content"><Textarea value={newScriptContent} onChange={(e) => setNewScriptContent(e.target.value)} rows={10} /></FormField><div className="flex justify-end gap-4 mt-6"><Button onClick={() => setIsScriptModalOpen(false)} variant="secondary">Cancel</Button><Button onClick={handleSaveNewScript} variant="primary">Save & Download</Button></div></div></div>)}
+                </div>
+            );
+        }
+
+        // Render the App
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
