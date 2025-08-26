@@ -121,18 +121,30 @@ def algorithm_does_not_contain(task: AuditTask) -> bool:
     stdout, exit_code, expected_exit_code, expected_conditions, logic_type = data_format(task)
     # Normalize whitespace for better matching
     normalized_stdout = ' '.join(stdout.lower().split())
-    # check each of the expected conditions 
     if logic_type == "OR":
         for condition in expected_conditions:
             normalized_condition = ' '.join(condition.lower().split())
-            if normalized_condition in normalized_stdout:
-                return False
+            # For single word conditions, check for exact word match to avoid substring issues
+            if ' ' not in normalized_condition.strip():
+                import re
+                pattern = r'\b' + re.escape(normalized_condition) + r'\b'
+                if re.search(pattern, normalized_stdout):
+                    return False
+            else:
+                if normalized_condition in normalized_stdout:
+                    return False
         return True
     else:
         for condition in expected_conditions:
             normalized_condition = ' '.join(condition.lower().split())
-            if normalized_condition in normalized_stdout:
-                return False
+            if ' ' not in normalized_condition.strip():
+                import re
+                pattern = r'\b' + re.escape(normalized_condition) + r'\b'
+                if re.search(pattern, normalized_stdout):
+                    return False
+            else:
+                if normalized_condition in normalized_stdout:
+                    return False
         return True 
 
 
