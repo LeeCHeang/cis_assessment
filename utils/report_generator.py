@@ -103,13 +103,13 @@ class ReportGenerator:
         self.legacy_reporter.generate_legacy_summary_file(show_all)
     
     # Legacy methods for backward compatibility
-    def get_status_task(self, task: AuditTask) -> str:
+    def _get_task_status(self, task: AuditTask) -> str:
         return self.console_reporter.task_formatter.get_task_status(task)
     
-    def count_status(self, status: str) -> int:
+    def _count_by_status(self, status: str) -> int:
         return self.console_reporter._count_by_status(status)
     
-    def show_console_output(self, status: str, show_all: bool) -> bool:
+    def _should_show_in_console(self, status: str, show_all: bool) -> bool:
         return self.console_reporter._should_show_in_console(status, show_all)
 
 
@@ -130,13 +130,13 @@ def gorganized_reports(tasks: List[AuditTask], log_level: str = 'INFO'):
 
 
 # old function
-def format_file_tree(node: Dict[str, Any], log_level: str, prefix: str = "", is_last: bool = True) -> str:
+def format_tree_file(node: Dict[str, Any], log_level: str, prefix: str = "", is_last: bool = True) -> str:
     from .report_formatters import TreeFormatter
     formatter = TreeFormatter(log_level)
     return formatter.format_for_file(node, prefix, is_last)
 
 
-def detail_report_output(node: Dict[str, Any], log_level: str, prefix: str = "", is_last: bool = True):
+def detail_report_show(node: Dict[str, Any], log_level: str, prefix: str = "", is_last: bool = True):
     from .report_formatters import TreeFormatter
     formatter = TreeFormatter(log_level)
     formatter.format_for_console(node, prefix, is_last)
