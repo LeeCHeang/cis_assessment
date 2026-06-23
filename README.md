@@ -92,5 +92,4 @@ See `remote_audit_examples.py` for comprehensive usage examples.
 - SSH connections are established over encrypted channels
 - The remote user should have appropriate permissions to run system checks
 
-## File Structure
 
